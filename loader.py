@@ -18,38 +18,36 @@ with open("data/roles.json", encoding="utf-8") as file:
                 team = excluded.team
         """, (role["name"], role["team"]))
 
-json_file_names = [filename for filename in os.listdir(path_to_json_files) if filename.endswith('.json')]
+for root, dirs, files in os.walk(path_to_json_files):
+    for n in files:
+        with open(os.path.join(root, n)) as json_file:
+            game = json.load(json_file)
 
-
-for json_file_name in json_file_names:
-    with open(os.path.join(path_to_json_files, json_file_name)) as json_file:
-        game = json.load(json_file)
-
-        conn.execute("""
-            INSERT INTO games (id, script, date, storyteller, group_name, winner, player_count, traveller_count, loric)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE set
-                script = excluded.script,
-                date = excluded.date,
-                storyteller = excluded.storyteller,
-                group_name = excluded.group_name,
-                winner = excluded.winner,
-                player_count = excluded.player_count,
-                traveller_count = excluded.traveller_count,
-                loric = excluded.loric
-            """,  (game["id"], game["script"], game["date"], game["storyteller"], game["group_name"], 
-                    game["winner"],
-                    game["player_count"],
-                    game.get("traveller_count", 0),
-                    game.get("loric", False)))
-
-
-        for p in game["players"]:
             conn.execute("""
-                INSERT OR IGNORE INTO players (game_id, name, role, secondary_role, team)
-                VALUES (?, ?, ?, ?, ?)
-            """, 
-            (game["id"], p["name"], p["role"], p.get("secondary_role"), p["team"]))
+                INSERT INTO games (id, script, date, storyteller, group_name, winner, player_count, traveller_count, loric)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE set
+                    script = excluded.script,
+                    date = excluded.date,
+                    storyteller = excluded.storyteller,
+                    group_name = excluded.group_name,
+                    winner = excluded.winner,
+                    player_count = excluded.player_count,
+                    traveller_count = excluded.traveller_count,
+                    loric = excluded.loric
+                """,  (game["id"], game["script"], game["date"], game["storyteller"], game["group_name"], 
+                        game["winner"],
+                        game["player_count"],
+                        game.get("traveller_count", 0),
+                        game.get("loric", False)))
+
+
+            for p in game["players"]:
+                conn.execute("""
+                    INSERT OR IGNORE INTO players (game_id, name, role, secondary_role, team)
+                    VALUES (?, ?, ?, ?, ?)
+                """, 
+                (game["id"], p["name"], p["role"], p.get("secondary_role"), p["team"]))
 
 
 winRates = conn.execute("""
